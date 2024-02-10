@@ -1,0 +1,101 @@
+float cf = 19.5;
+
+//Initalizing the sensor data.
+int front = A0;
+int left = A1;
+int right = A2;
+
+double dt;
+unsigned long timeNow = micros();
+unsigned long timeLast = 0;
+double inputs[3][5];
+/*
+/ A 2d array storing the each sensor in rows and the outputs in the columns.
+/ row 1 goes from front sensor counterclockwise around the head
+/ Column 0 & 1 is the intial and last input from the sensor, column 2 is the intial smooth version, column 3 is ROC, column 4 is the smooth ROC.
+*/
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(left, INPUT);
+  pinMode(right, INPUT);
+  pinMode(front, INPUT);
+}
+
+//Smooths out the data
+double smooth(double dt, double input, double inputSmooth){
+  double tau = 1.0;
+  double w = dt/tau;
+
+  if(w>1){
+    w = 1;
+  }
+  return inputSmooth * (1-w) + w * input;
+}
+
+//Does the pressure calculation.
+double pressure(double input, double constant){
+  return ((input * 5.0) / 1023.0) * constant;
+}
+
+//Returns the rate of change.
+double rateOfChange(double inital, double final, double dt){
+  return (inital - final)/dt;
+}
+
+void loop() {
+  timeLast = timeNow;
+  timeNow = micros();
+  dt = (timeNow - timeLast)/1000000.;
+
+   //for(int i = 0; i < 4; i++){
+    //inputs[i][1] = input[i][0];}
+
+  // last = inital (before intial been updated)
+  for(int i = 0; i < 3; i++){
+    inputs[i][0] = inputs[i][1];
+    inputs[i][3] = inputs[i][4];
+  }
+  //inputs[0][0] = pressure(analogRead(front), cf);
+  inputs[0][1] = pressure(analogRead(left), cf);
+  inputs[1][1] = pressure(analogRead(right), cf);
+  inputs[2][1] = pressure(analogRead(front), cf);
+
+     //Smooths out last.
+    inputs[0][2] = smooth(dt, inputs[0][1], inputs[0][2]);
+    //Takes the rate of change
+    inputs[0][3] = rateOfChange(inputs[0][0], inputs[0][1], dt);
+
+    //Smooths out last.
+    inputs[1][2] = smooth(dt, inputs[1][1], inputs[1][2]);
+    //Takes the rate of change
+    inputs[1][3] = rateOfChange(inputs[1][0], inputs[1][1], dt);
+
+    //Smooths out last.
+    inputs[2][2] = smooth(dt, inputs[2][1], inputs[2][2]);
+    //Takes the rate of change
+    inputs[2][3] = rateOfChange(inputs[2][0], inputs[2][1], dt);
+
+    //Smooth ROC
+    inputs[0][4] = smooth(dt, inputs[0][3], inputs[0][4]);
+    inputs[1][4] = smooth(dt, inputs[1][3], inputs[1][4]);
+    inputs[2][4] = smooth(dt, inputs[2][3], inputs[2][4]);
+
+    for(int i = 0; i < 3; i++){
+      if(inputs[i][4] < 0.5 && inputs[i][4] > 0.5){
+        inputs[i][4] = 0;
+      }
+    }
+
+    
+    
+    Serial.print(0);
+    Serial.print(",");
+    Serial.print(inputs[0][4]);
+    Serial.print(",");
+    Serial.print(inputs[1][4]);
+    Serial.print(",");
+    Serial.println(10 * inputs[2][4]);
+
+    delay(100);
+}
