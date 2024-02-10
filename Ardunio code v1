@@ -1,0 +1,86 @@
+float cf = 19.5;
+int front = A0;
+int frontData = 0;
+
+//Initalizing the sensor data.
+int sensor[4][2] = {
+  {A0, 0},
+  {A2, 0},
+  {A3, 0},
+  {A4, 0}
+};
+
+double dt;
+unsigned long timeNow = micros();
+unsigned long timeLast = 0;
+double voutinitial = 0;
+double voutfinal = 0;
+double inputs[5][5];
+/*
+/ A 2d array storing the each sensor in rows and the outputs in the columns.
+/ row 1 goes from front sensor counterclockwise around the head, row 5 being the gyro.
+/ Column 1 & 2 is the intial and final input from the sensor, column 2 & 3 is the inital smooth version, column 5 is the rate of change.
+*/
+
+void setup() {
+  Serial.begin(9600);
+  for(int i = 0; i < 4;  ++i){
+    pinMode(sensor[i][0], INPUT);
+  }
+}
+
+//Smooths out the data
+double smooth(double dt, double input, double inputSmooth){
+  double tau = 1;
+  double w = dt/tau;
+
+  if(w>1){
+    w = 1;
+  }
+  return inputSmooth * (1-w) + w * input;
+}
+
+//Does the pressure calculation.
+double pressure(double input, double constant){
+  return ((input * 5.0) / 1023.0) * constant;
+}
+
+//Returns the rate of change.
+double rateOfChange(double inital, double final, double dt){
+  return (inital - final)/dt;
+}
+
+void loop() {
+  timeLast = timeNow;
+  timeNow = micros();
+  dt = (timeNow - timeLast)/1000000.;
+
+  //Reads the data from the analog input
+  //for(int i =0; i < 4; ++i){
+    //sensor[i][1] = analogRead(sensor[i][0]);
+  //}
+
+  //for(int i = 0; i < 4; i++){
+    //inputs[i][0] = pressure(sensor[i][0], cf);
+    //inputs[i][3] = smooth(dt, inputs[i][0], inputs[i][2]);
+ // }
+  
+  sensor[0][1] = analogRead(sensor[0][0]);
+  inputs[0][0] = pressure(sensor[0][0], cf);
+  inputs[0][3] = smooth(dt, inputs[0][0], inputs[0][2]);
+
+
+
+  Serial.print("Baseline:");
+  Serial.print(timeNow);
+  Serial.print("side neck sensors:");
+  Serial.print(inputs[0][1]);
+  Serial.print("rate of change:");
+  Serial.println(inputs[0][3]);
+
+
+
+
+
+  delay(100);
+}
