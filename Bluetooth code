@@ -1,0 +1,26 @@
+#include <SoftwareSerial.h>
+
+// RX and TX connected to the Arduino pins 10 and 11 respectively
+SoftwareSerial bluetoothSerial(19, 18); // RX, TX
+
+void setup() {
+  // Begin serial communication with Arduino and Arduino IDE (Serial Monitor)
+  Serial.begin(9600);
+  
+  // Begin serial communication with Bluetooth module
+  bluetoothSerial.begin(9600);
+}
+
+void loop() {
+  // Read the input on analog pin A0
+  int sensorValue = analogRead(A0);
+  
+  // Print the value to the Serial Monitor (optional)
+  Serial.println(sensorValue);
+  
+  // Send the value over Bluetooth
+  bluetoothSerial.println(sensorValue);
+  
+  // Delay for a bit to avoid spamming
+  delay(1000);
+}
